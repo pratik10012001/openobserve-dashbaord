@@ -1,4 +1,4 @@
 auth:
-  ZO_ROOT_USER_EMAIL: "admin@example.com"
-  ZO_ROOT_USER_PASSWORD: "SuperSecret123"
+  ZO_ROOT_USER_EMAIL: "root@example.com"
+  ZO_ROOT_USER_PASSWORD: "Complexpass#123"
 
