@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logger-app
+  namespace: logger-demo
+  annotations:
+    instrumentation.opentelemetry.io/inject-java: "openobserve-collector/openobserve-java" # if using java
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logger
+  template:
+    metadata:
+      labels:
+        app: logger
+    spec:
+      containers:
+      - name: logger
+        image: busybox
+        command: ["/bin/sh","-c"]
+        args:
+         - while true; do echo "{\"level\":\"INFO\",\"msg\":\"hello world - info\",\"body\":\"body A\"}"; sleep 5; echo "{\"level\":\"ERROR\",\"msg\":\"something broke\",\"body\":\"body B\"}"; sleep 5; done
+

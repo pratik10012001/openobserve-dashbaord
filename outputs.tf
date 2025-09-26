@@ -1,0 +1,27 @@
+# Namespaces
+output "namespaces" {
+  value = [
+    kubernetes_namespace.demo.metadata[0].name,
+    kubernetes_namespace.openobserve.metadata[0].name
+  ]
+}
+
+# Output nginx manifests applied
+output "nginx_objects" {
+  value = { for k, v in kubernetes_manifest.nginx : k => v.object }
+}
+
+# Output java app manifests applied
+output "java_objects" {
+  value = { for k, v in kubernetes_manifest.java : k => v.object }
+}
+
+# Output logger app manifests applied
+output "logger_objects" {
+  value = { for k, v in kubernetes_manifest.logger : k => v.object }
+}
+
+# Helm release info
+output "openobserve_release" {
+  value = helm_release.openobserve.status
+}
