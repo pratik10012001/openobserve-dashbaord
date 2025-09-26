@@ -11,14 +11,12 @@ output "nginx_objects" {
   value = { for k, v in kubernetes_manifest.nginx : k => v.object }
 }
 
-# Output java app manifests applied
 output "java_objects" {
-  value = { for k, v in kubernetes_manifest.java : k => v.object }
+  value = { for k, v in kubernetes_manifest.java_app : k => v.object }
 }
-
-# Output logger app manifests applied
+ 
 output "logger_objects" {
-  value = { for k, v in kubernetes_manifest.logger : k => v.object }
+  value = { for k, v in kubernetes_manifest.logger_app : k => v.object }
 }
 
 # Helm release info
