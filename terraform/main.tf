@@ -88,7 +88,7 @@ resource "helm_release" "openobserve" {
 
   namespace  = kubernetes_namespace.openobserve.metadata[0].name
 
-  version    = var.openobserve_chart_version
+  version    = "v0.15.1"
  
   values = [
 
