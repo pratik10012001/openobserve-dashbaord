@@ -1,70 +1,95 @@
-# -----------------------------
-# Namespaces
-# -----------------------------
+# Create Kubernetes namespaces
+
 resource "kubernetes_namespace" "demo" {
-  metadata { name = "demo" }
-}
- 
-resource "kubernetes_namespace" "logger_demo" {
-  metadata { name = "logger-demo" }
+
+  metadata {
+
+    name = "demo"
+
+  }
+
 }
  
 resource "kubernetes_namespace" "openobserve" {
-  metadata { name = "openobserve" }
+
+  metadata {
+
+    name = "openobserve"
+
+  }
+
 }
  
-# -----------------------------
-# Kubernetes manifests
-# -----------------------------
-# Function to flatten multiple YAML documents
+# Locals: split YAML docs in case file has multiple documents (---)
+
 locals {
-  nginx_manifests = flatten([
-    for f in fileset("${path.module}/../k8s", "nginx-*.yaml") :
-    yamldecodeall(file("${path.module}/../k8s/${f}"))
-  ])
- 
-  java_manifests = flatten([
-    for f in fileset("${path.module}/../k8s", "my-java-app-*.yaml") :
-    yamldecodeall(file("${path.module}/../k8s/${f}"))
-  ])
- 
-  logger_manifests = flatten([
-    for f in fileset("${path.module}/../k8s", "logger-*.yaml") :
-    yamldecodeall(file("${path.module}/../k8s/${f}"))
-  ])
+
+  nginx_docs  = [for doc in split("---", file("${path.module}/../k8s/nginx-deploy.yaml")) : yamldecode(trimspace(doc)) if trimspace(doc) != ""]
+
+  java_docs   = [for doc in split("---", file("${path.module}/../k8s/my-java-app-deployment.yaml")) : yamldecode(trimspace(doc)) if trimspace(doc) != ""]
+
+  logger_docs = [for doc in split("---", file("${path.module}/../k8s/logger-app.yaml")) : yamldecode(trimspace(doc)) if trimspace(doc) != ""]
+
 }
  
+# Deploy nginx (all docs inside nginx-deploy.yaml)
+
 resource "kubernetes_manifest" "nginx" {
-  for_each   = { for idx, obj in local.nginx_manifests : idx => obj }
+
+  for_each   = { for i, v in local.nginx_docs : i => v }
+
   manifest   = each.value
+
   depends_on = [kubernetes_namespace.demo]
+
 }
  
-resource "kubernetes_manifest" "java_app" {
-  for_each   = { for idx, obj in local.java_manifests : idx => obj }
+# Deploy java app (all docs inside my-java-app-deployment.yaml)
+
+resource "kubernetes_manifest" "java" {
+
+  for_each   = { for i, v in local.java_docs : i => v }
+
   manifest   = each.value
+
   depends_on = [kubernetes_namespace.demo]
+
 }
  
-resource "kubernetes_manifest" "logger_app" {
-  for_each   = { for idx, obj in local.logger_manifests : idx => obj }
+# Deploy logger app (all docs inside logger-app.yaml)
+
+resource "kubernetes_manifest" "logger" {
+
+  for_each   = { for i, v in local.logger_docs : i => v }
+
   manifest   = each.value
-  depends_on = [kubernetes_namespace.logger_demo]
+
+  depends_on = [kubernetes_namespace.demo]
+
 }
  
-# -----------------------------
 # Helm release for OpenObserve
-# -----------------------------
+
 resource "helm_release" "openobserve" {
+
   name       = "openobserve-standalone"
+
   repository = "https://charts.openobserve.ai"
+
   chart      = "openobserve-standalone"
+
   namespace  = kubernetes_namespace.openobserve.metadata[0].name
-  version    = "0.2.0"  # update to a valid version
+
+  version    = var.openobserve_chart_version
  
   values = [
-    file("${path.module}/../helm/openobserve-values.yaml")
+
+    file("${path.module}/${var.openobserve_values_file}")
+
   ]
  
   depends_on = [kubernetes_namespace.openobserve]
+
 }
+
+ 
