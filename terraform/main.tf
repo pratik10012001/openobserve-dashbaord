@@ -1,5 +1,13 @@
 # Create Kubernetes namespaces
+resource "kubernetes_namespace" "logger_demo" {
 
+  metadata {
+
+    name = "logger-demo"
+
+  }
+
+}
 resource "kubernetes_namespace" "demo" {
 
   metadata {
