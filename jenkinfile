@@ -1,0 +1,90 @@
+pipeline {
+    agent any
+
+    environment {
+        SERVER_IP = "3.91.201.57"
+        PEM_PATH  = "/data/pem_files/pratik-test-rd.pem"  // place PEM file here on Jenkins server
+        GIT_REPO  = "https://github.com/pratik10012001/openobserve-dashbaord.git"
+    }
+
+    stages {
+        stage('Checkout Repo') {
+            steps {
+                git branch: 'main', url: "${GIT_REPO}"
+            }
+        }
+
+        stage('Terraform Init & Apply') {
+            steps {
+                sh '''
+                echo ">>> Running Terraform on remote server"
+                ssh -o StrictHostKeyChecking=no -i ${PEM_PATH} ubuntu@${SERVER_IP} << EOF
+                  cd ~
+                  # Remove old repo to ensure clean clone
+                  rm -rf openobserve-dashbaord
+                  git clone ${GIT_REPO}
+                  cd openobserve-dashbaord/terraform || { echo "Terraform folder not found!"; exit 1; }
+
+                  # Verify k8s folder
+                  if [ ! -d "../k8s" ]; then
+                      echo "k8s folder not found!"
+                      exit 1
+                  fi
+
+                  # Initialize and apply Terraform
+                  terraform init -input=false
+                  terraform plan -out=tfplan
+                  terraform apply -auto-approve tfplan
+EOF
+                '''
+            }
+        }
+
+        stage('Deploy Helm & K8s Resources') {
+            steps {
+                sh '''
+                echo ">>> Installing Helm chart and applying K8s manifests"
+                ssh -o StrictHostKeyChecking=no -i ${PEM_PATH} ubuntu@${SERVER_IP} << EOF
+                  cd ~/openobserve-dashbaord
+
+                  # Deploy Helm charts if any
+                  if [ -d "helm" ]; then
+                      for chart in helm/*; do
+                          if [ -d "\$chart" ]; then
+                              helm upgrade --install \$(basename \$chart) \$chart --namespace openobserve --create-namespace
+                          fi
+                      done
+                  fi
+
+                  # Apply raw K8s manifests
+                  if [ -d "k8s" ]; then
+                      kubectl apply -f k8s/
+                  fi
+EOF
+                '''
+            }
+        }
+
+        stage('Validate Deployment') {
+            steps {
+                sh '''
+                echo ">>> Checking namespaces, pods, and services"
+                ssh -o StrictHostKeyChecking=no -i ${PEM_PATH} ubuntu@${SERVER_IP} << EOF
+                  kubectl get ns
+                  kubectl get pods --all-namespaces
+                  kubectl get svc --all-namespaces
+EOF
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ CI/CD Pipeline Completed Successfully"
+        }
+        failure {
+            echo "❌ Pipeline Failed - Check logs"
+        }
+    }
+}
