@@ -33,7 +33,7 @@ resource "helm_release" "openobserve" {
   name       = "openobserve-standalone"
   repository = "https://charts.openobserve.ai"
   chart      = "openobserve-standalone"
-  namespace  = kubernetes_namespace.openobserve.metadata.name
+  namespace  = kubernetes_namespace.openobserve.metadata[0].name
   version    = "0.2.0"  # validate version
  
   values = [
