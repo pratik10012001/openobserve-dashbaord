@@ -13,9 +13,9 @@ resource "kubernetes_namespace" "openobserve" {
 
 # Locals: split YAML docs in case file has multiple (---)
 locals {
-  nginx_docs  = [for doc in split("---", file("${path.module}/. ./k8s/nginx-deploy.yaml")) : yamldecode(trimspace(doc)) if trimspace(doc) != ""]
-  java_docs   = [for doc in split("---", file("${path.module}/. ./k8s/my-java-app-deployment.yaml")) : yamldecode(trimspace(doc)) if trimspace(doc) != ""]
-  logger_docs = [for doc in split("---", file("${path.module}/. ./k8s/logger-app.yaml")) : yamldecode(trimspace(doc)) if trimspace(doc) != ""]
+  nginx_docs  = [for doc in split("---", file("${path.module}/../k8s/nginx-deploy.yaml")) : yamldecode(trimspace(doc)) if trimspace(doc) != ""]
+  java_docs   = [for doc in split("---", file("${path.module}/../k8s/my-java-app-deployment.yaml")) : yamldecode(trimspace(doc)) if trimspace(doc) != ""]
+  logger_docs = [for doc in split("---", file("${path.module}/../k8s/logger-app.yaml")) : yamldecode(trimspace(doc)) if trimspace(doc) != ""]
 }
 
 # Deploy nginx (all docs inside nginx-deploy.yaml)
