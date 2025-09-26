@@ -1,7 +1,13 @@
-provider "kubernetes" {}
-provider "helm" {}
+provider "kubernetes" {
+  config_path = "~/.kube/config"
+}
  
-# Namespaces
+provider "helm" {
+  kubernetes {
+    config_path = "~/.kube/config"
+  }
+}
+ 
 resource "kubernetes_namespace" "demo" {
   metadata { name = "demo" }
 }
@@ -14,32 +20,31 @@ resource "kubernetes_namespace" "openobserve" {
   metadata { name = "openobserve" }
 }
  
-# Kubernetes manifests
+# Example for single YAML per manifest
 resource "kubernetes_manifest" "nginx" {
-  for_each   = fileset("${path.module}/../k8s", "nginx-*.yaml")
-  manifest   = yamldecode(file("${path.module}/../k8s/${each.key}"))
+  for_each = fileset("${path.module}/../k8s", "nginx-*.yaml")
+  manifest = yamldecode(file("${path.module}/../k8s/${each.key}"))
   depends_on = [kubernetes_namespace.demo]
 }
  
 resource "kubernetes_manifest" "java_app" {
-  for_each   = fileset("${path.module}/../k8s", "my-java-app-*.yaml")
-  manifest   = yamldecode(file("${path.module}/../k8s/${each.key}"))
+  for_each = fileset("${path.module}/../k8s", "my-java-app-*.yaml")
+  manifest = yamldecode(file("${path.module}/../k8s/${each.key}"))
   depends_on = [kubernetes_namespace.demo]
 }
  
 resource "kubernetes_manifest" "logger_app" {
-  for_each   = fileset("${path.module}/../k8s", "logger-*.yaml")
-  manifest   = yamldecode(file("${path.module}/../k8s/${each.key}"))
+  for_each = fileset("${path.module}/../k8s", "logger-*.yaml")
+  manifest = yamldecode(file("${path.module}/../k8s/${each.key}"))
   depends_on = [kubernetes_namespace.logger_demo]
 }
  
-# Helm release for OpenObserve
 resource "helm_release" "openobserve" {
   name       = "openobserve-standalone"
   repository = "https://charts.openobserve.ai"
   chart      = "openobserve-standalone"
-  namespace  = kubernetes_namespace.openobserve.metadata[0].name
-  version    = "0.2.0"  # update with valid version
+  namespace  = kubernetes_namespace.openobserve.metadata.name
+  version    = "0.2.0"  # validate version
  
   values = [
     file("${path.module}/../helm/openobserve-values.yaml")
